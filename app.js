@@ -17,6 +17,7 @@ async function mainMenu() {
                 'Add a role',
                 'Add an employee',
                 'Update an employee role',
+                'Search an employee',
                 'Exit'
             ]
         }
@@ -47,6 +48,9 @@ async function mainMenu() {
         case 'Update an employee role':
             await updateEmployeeRole();
             break;
+        case 'Search an employee':
+            await searchEmployee();
+            break;
         case 'Exit':
             console.log('Goodbye!');
             process.exit();
@@ -54,7 +58,7 @@ async function mainMenu() {
 
     await mainMenu();
 }
-
+//adding department
 async function addDepartment() {
     const { name } = await inquirer.prompt([
         {
@@ -68,6 +72,7 @@ async function addDepartment() {
     console.log(`Added ${name} to departments`);
 }
 
+//adding role
 async function addRole() {
     const departments = await queries.getDepartments();
     const { title, salary, departmentId } = await inquirer.prompt([
@@ -93,6 +98,7 @@ async function addRole() {
     console.log(`Added ${title} to roles`);
 }
 
+//adding employee
 async function addEmployee() {
     const roles = await queries.getRoles();
     const employees = await queries.getEmployees();
@@ -125,6 +131,7 @@ async function addEmployee() {
     console.log(`Added ${firstName} ${lastName} to employees`);
 }
 
+//updating employee role
 async function updateEmployeeRole() {
     const employees = await queries.getEmployees();
     const roles = await queries.getRoles();
@@ -146,5 +153,24 @@ async function updateEmployeeRole() {
     await queries.updateEmployeeRole(employeeId, roleId);
     console.log(`Updated employee's role`);
 }
+
+async function searchEmployee() {
+    const { searchTerm } = await inquirer.prompt([
+        {
+            type: 'input',
+            name: 'searchTerm',
+            message: 'Enter the name of the employee to search:'
+        }
+    ]);
+
+    const employees = await queries.searchEmployees(searchTerm);
+    if (employees.length === 0) {
+        console.log(`No employees found with the name "${searchTerm}"`);
+    } else {
+        console.table(employees);
+    }
+}
+
+
 
 mainMenu();
