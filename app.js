@@ -3,6 +3,7 @@
 const inquirer = require('inquirer');
 const queries = require('./lib/queries');
 
+//Main function with switch cases for options
 async function mainMenu() {
     const { action } = await inquirer.prompt([
         {
@@ -10,23 +11,32 @@ async function mainMenu() {
             name: 'action',
             message: 'What would you like to do?',
             choices: [
+                //Viewing options
                 'View all departments',
                 'View all roles',
                 'View all employees',
+                'View employees by manager',
+                'View employees by Department',
+                //Adding options
                 'Add a department',
                 'Add a role',
                 'Add an employee',
+                //Updating options
                 'Update an employee role',
                 'Update an employee manager',
-                'View employees by manager',
-                'View employees by Department',
+                //Searching optings
                 'Search an employee',
+                //Deleting options
+                'Delete a Department',
+                'Delete a Role',
+                'Delete an Employee',
                 'Exit'
             ]
         }
     ]);
 
     switch (action) {
+        //Viewing option switch cases
         case 'View all departments':
             const departments = await queries.viewAllDepartments();
             console.table(departments);
@@ -39,6 +49,13 @@ async function mainMenu() {
             const employees = await queries.viewAllEmployees();
             console.table(employees);
             break;
+        case 'View employees by manager':
+            await viewEmployeesByManager();
+            break;
+        case 'View employees by Department':
+            await viewEmployeesByDepartment();
+            break;
+        //Adding options switch case
         case 'Add a department':
             await addDepartment();
             break;
@@ -48,21 +65,28 @@ async function mainMenu() {
         case 'Add an employee':
             await addEmployee();
             break;
+        //Updating options switch cases
         case 'Update an employee role':
             await updateEmployeeRole();
-            break;
-        case 'Search an employee':
-            await searchEmployee();
             break;
         case 'Update an employee manager':
             await updateEmployeeManager();
             break;
-        case 'View employees by manager':
-            await viewEmployeesByManager();
+        //Serching options switch cases
+        case 'Search an employee':
+            await searchEmployee();
             break;
-        case 'View employees by Department':
-            await viewEmployeesByDepartment();
+        //Deleting options switch cases
+        case 'Delete a Department':
+            await deleteDepartment();
             break;
+        case 'Delete a Role':
+            await deleteRole();
+            break;
+        case 'Delete an Employee':
+            await deleteEmployee();
+            break;
+
         case 'Exit':
             console.log('Goodbye!');
             process.exit();
@@ -82,45 +106,6 @@ async function addDepartment() {
 
     await queries.addDepartment(name);
     console.log(`Added ${name} to departments`);
-}
-async function viewEmployeesByDepartment() {
-    const departments = await queries.getDepartments();
-    const { departmentId } = await inquirer.prompt([
-        {
-            type: 'list',
-            name: 'departmentId',
-            message: 'Which department would you like to view employees for?',
-            choices: departments.map(dept => ({ name: dept.name, value: dept.id }))
-        }
-    ]);
-
-    const employees = await queries.getEmployeesByDepartment(departmentId);
-    console.table(employees);
-}
-//adding role
-async function addRole() {
-    const departments = await queries.getDepartments();
-    const { title, salary, departmentId } = await inquirer.prompt([
-        {
-            type: 'input',
-            name: 'title',
-            message: 'What is the title of the role?'
-        },
-        {
-            type: 'input',
-            name: 'salary',
-            message: 'What is the salary for this role?'
-        },
-        {
-            type: 'list',
-            name: 'departmentId',
-            message: 'Which department does this role belong to?',
-            choices: departments.map(dept => ({ name: dept.name, value: dept.id }))
-        }
-    ]);
-
-    await queries.addRole(title, salary, departmentId);
-    console.log(`Added ${title} to roles`);
 }
 
 //adding employee
@@ -154,6 +139,79 @@ async function addEmployee() {
 
     await queries.addEmployee(firstName, lastName, roleId, managerId);
     console.log(`Added ${firstName} ${lastName} to employees`);
+}
+
+//adding role
+async function addRole() {
+    const departments = await queries.getDepartments();
+    const { title, salary, departmentId } = await inquirer.prompt([
+        {
+            type: 'input',
+            name: 'title',
+            message: 'What is the title of the role?'
+        },
+        {
+            type: 'input',
+            name: 'salary',
+            message: 'What is the salary for this role?'
+        },
+        {
+            type: 'list',
+            name: 'departmentId',
+            message: 'Which department does this role belong to?',
+            choices: departments.map(dept => ({ name: dept.name, value: dept.id }))
+        }
+    ]);
+
+    await queries.addRole(title, salary, departmentId);
+    console.log(`Added ${title} to roles`);
+}
+
+//View employee by Department
+async function viewEmployeesByDepartment() {
+    const departments = await queries.getDepartments();
+    const { departmentId } = await inquirer.prompt([
+        {
+            type: 'list',
+            name: 'departmentId',
+            message: 'Which department would you like to view employees for?',
+            choices: departments.map(dept => ({ name: dept.name, value: dept.id }))
+        }
+    ]);
+
+    const employees = await queries.getEmployeesByDepartment(departmentId);
+    console.table(employees);
+}
+
+//View employees by Manager Name
+async function viewEmployeesByManager() {
+    const managers = await queries.getEmployees();
+
+    const { managerId } = await inquirer.prompt([
+        {
+            type: 'list',
+            name: 'managerId',
+            message: 'Which manager\'s employees would you like to view?',
+            choices: [
+                { name: 'All employees without a manager', value: 'null' },
+                ...managers.map(emp => ({ name: emp.name, value: emp.id }))
+            ]
+        }
+    ]);
+
+    const employees = await queries.viewEmployeesByManager(managerId === 'null' ? null : managerId);
+
+    if (employees.length === 0) {
+        console.log('No employees found for this selection.');
+    } else {
+        if (managerId === 'null') {
+            console.log('Employees without a manager:');
+        } else {
+            const managerName = managers.find(m => m.id === parseInt(managerId)).name;
+            console.log(`Employees managed by ${managerName}:`);
+        }
+        console.table(employees);
+    }
 }
 
 //updating employee role
@@ -203,35 +261,6 @@ async function updateEmployeeManager() {
     console.log(`Updated employee's manager`);
 }
 
-async function viewEmployeesByManager() {
-    const managers = await queries.getEmployees();
-
-    const { managerId } = await inquirer.prompt([
-        {
-            type: 'list',
-            name: 'managerId',
-            message: 'Which manager\'s employees would you like to view?',
-            choices: [
-                { name: 'All employees without a manager', value: 'null' },
-                ...managers.map(emp => ({ name: emp.name, value: emp.id }))
-            ]
-        }
-    ]);
-
-    const employees = await queries.viewEmployeesByManager(managerId === 'null' ? null : managerId);
-
-    if (employees.length === 0) {
-        console.log('No employees found for this selection.');
-    } else {
-        if (managerId === 'null') {
-            console.log('Employees without a manager:');
-        } else {
-            const managerName = managers.find(m => m.id === parseInt(managerId)).name;
-            console.log(`Employees managed by ${managerName}:`);
-        }
-        console.table(employees);
-    }
-}
 //Search employee
 async function searchEmployee() {
     const { searchTerm } = await inquirer.prompt([
@@ -250,6 +279,51 @@ async function searchEmployee() {
     }
 }
 
+//Deleting options
 
+//Deleting a Department
+async function deleteDepartment() {
+    const departments = await queries.getDepartments();
+    const { departmentId } = await inquirer.prompt([
+        {
+            type: 'list',
+            name: 'departmentId',
+            message: 'Which department would you like to delete?',
+            choices: departments.map(dept => ({ name: dept.name, value: dept.id }))
+        }
+    ]);
+    await queries.deleteDepartment(departmentId);
+    console.log(`Deleted department`);
+}
 
+// Deleting a Role
+async function deleteRole() {
+    const roles = await queries.getRoles();
+    const { roleId } = await inquirer.prompt([
+        {
+            type: 'list',
+            name: 'roleId',
+            message: 'Which role would you like to delete?',
+            choices: roles.map(role => ({ name: role.title, value: role.id }))
+        }
+    ]);
+    await queries.deleteRole(roleId);
+    console.log(`Deleted role`);
+}
+
+//Deleting an Employee
+async function deleteEmployee() {
+    const employees = await queries.getEmployees();
+    const { employeeId } = await inquirer.prompt([
+        {
+            type: 'list',
+            name: 'employeeId',
+            message: 'Which employee would you like to delete?',
+            choices: employees.map(emp => ({ name: emp.name, value: emp.id }))
+        }
+    ]);
+    await queries.deleteEmployee(employeeId);
+    console.log(`Deleted employee`);
+}
+//Calling Main function to 
 mainMenu();
