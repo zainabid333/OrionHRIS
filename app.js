@@ -17,6 +17,9 @@ async function mainMenu() {
                 'Add a role',
                 'Add an employee',
                 'Update an employee role',
+                'Update an employee manager',
+                'View employees by manager',
+                'View employees by Department',
                 'Search an employee',
                 'Exit'
             ]
@@ -51,6 +54,15 @@ async function mainMenu() {
         case 'Search an employee':
             await searchEmployee();
             break;
+        case 'Update an employee manager':
+            await updateEmployeeManager();
+            break;
+        case 'View employees by manager':
+            await viewEmployeesByManager();
+            break;
+        case 'View employees by Department':
+            await viewEmployeesByDepartment();
+            break;
         case 'Exit':
             console.log('Goodbye!');
             process.exit();
@@ -71,7 +83,20 @@ async function addDepartment() {
     await queries.addDepartment(name);
     console.log(`Added ${name} to departments`);
 }
+async function viewEmployeesByDepartment() {
+    const departments = await queries.getDepartments();
+    const { departmentId } = await inquirer.prompt([
+        {
+            type: 'list',
+            name: 'departmentId',
+            message: 'Which department would you like to view employees for?',
+            choices: departments.map(dept => ({ name: dept.name, value: dept.id }))
+        }
+    ]);
 
+    const employees = await queries.getEmployeesByDepartment(departmentId);
+    console.table(employees);
+}
 //adding role
 async function addRole() {
     const departments = await queries.getDepartments();
@@ -154,6 +179,60 @@ async function updateEmployeeRole() {
     console.log(`Updated employee's role`);
 }
 
+//Update Employee Manager
+async function updateEmployeeManager() {
+    const employees = await queries.getEmployees();
+    const { employeeId } = await inquirer.prompt([
+        {
+            type: 'list',
+            name: 'employeeId',
+            message: 'Which employee do you want to update?',
+            choices: employees.map(emp => ({ name: emp.name, value: emp.id }))
+        }
+    ]);
+    const potentialManager = employees.filter(emp => emp.id !== employeeId);
+    const { managerId } = await inquirer.prompt([
+        {
+            type: 'list',
+            name: 'managerId',
+            message: 'Who is the employee manager?',
+            choices: [{ name: 'None', value: null }, ...potentialManager.map(emp => ({ name: emp.name, value: emp.id }))]
+        }
+    ]);
+    await queries.updateEmployeeManger(employeeId, managerId);
+    console.log(`Updated employee's manager`);
+}
+
+async function viewEmployeesByManager() {
+    const managers = await queries.getEmployees();
+
+    const { managerId } = await inquirer.prompt([
+        {
+            type: 'list',
+            name: 'managerId',
+            message: 'Which manager\'s employees would you like to view?',
+            choices: [
+                { name: 'All employees without a manager', value: 'null' },
+                ...managers.map(emp => ({ name: emp.name, value: emp.id }))
+            ]
+        }
+    ]);
+
+    const employees = await queries.viewEmployeesByManager(managerId === 'null' ? null : managerId);
+
+    if (employees.length === 0) {
+        console.log('No employees found for this selection.');
+    } else {
+        if (managerId === 'null') {
+            console.log('Employees without a manager:');
+        } else {
+            const managerName = managers.find(m => m.id === parseInt(managerId)).name;
+            console.log(`Employees managed by ${managerName}:`);
+        }
+        console.table(employees);
+    }
+}
+//Search employee
 async function searchEmployee() {
     const { searchTerm } = await inquirer.prompt([
         {
