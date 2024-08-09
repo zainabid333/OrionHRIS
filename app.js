@@ -11,22 +11,18 @@ async function mainMenu() {
             name: 'action',
             message: 'What would you like to do?',
             choices: [
-                //Viewing options
                 'View all departments',
                 'View all roles',
                 'View all employees',
                 'View employees by manager',
                 'View employees by Department',
-                //Adding options
+                'View department budget',
                 'Add a department',
                 'Add a role',
                 'Add an employee',
-                //Updating options
                 'Update an employee role',
                 'Update an employee manager',
-                //Searching optings
                 'Search an employee',
-                //Deleting options
                 'Delete a Department',
                 'Delete a Role',
                 'Delete an Employee',
@@ -37,6 +33,9 @@ async function mainMenu() {
 
     switch (action) {
         //Viewing option switch cases
+        case 'View department budget':
+            await viewDepartmentBudget();
+            break;
         case 'View all departments':
             const departments = await queries.viewAllDepartments();
             console.table(departments);
@@ -86,7 +85,6 @@ async function mainMenu() {
         case 'Delete an Employee':
             await deleteEmployee();
             break;
-
         case 'Exit':
             console.log('Goodbye!');
             process.exit();
@@ -106,6 +104,21 @@ async function addDepartment() {
 
     await queries.addDepartment(name);
     console.log(`Added ${name} to departments`);
+}
+
+//Viewing department Budget
+async function viewDepartmentBudget() {
+    const departments = await queries.getDepartments();
+    const { departmentId } = await inquirer.prompt([
+        {
+            type: 'list',
+            name: 'departmentId',
+            message: 'Which department would you like to view the budget for?',
+            choices: departments.map(dept => ({ name: dept.name, value: dept.id }))
+        }
+    ]);
+    const budget = await queries.viewBudgetByDepartment(departmentId);
+    console.log(`The budget for ${departments.find(dept => dept.id === departmentId).name} is $${budget}`);
 }
 
 //adding employee
